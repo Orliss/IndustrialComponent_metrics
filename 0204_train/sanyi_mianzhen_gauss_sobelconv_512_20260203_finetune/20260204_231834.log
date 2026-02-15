@@ -1,0 +1,2166 @@
+2026-02-04 23:18:34,929 - mmseg - INFO - Multi-processing start method is `None`
+2026-02-04 23:18:34,929 - mmseg - INFO - OpenCV num_threads is `<built-in function getNumThreads>
+2026-02-04 23:18:34,938 - mmseg - INFO - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.10.19 (main, Oct 21 2025, 16:43:05) [GCC 11.2.0]
+CUDA available: True
+GPU 0: NVIDIA GeForce RTX 3060
+CUDA_HOME: /usr/local/cuda
+NVCC: Cuda compilation tools, release 11.8, V11.8.89
+GCC: gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0
+PyTorch: 1.11.0+cu113
+PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) Math Kernel Library Version 2020.0.0 Product Build 20191122 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.5.2 (Git Hash a9302535553c73243c632ad3c4c80beec3d19a1e)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 11.3
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86
+  - CuDNN 8.2
+  - Magma 2.5.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.3, CUDNN_VERSION=8.2.0, CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/c++, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.11.0, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=OFF, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+TorchVision: 0.12.0+cu113
+OpenCV: 4.13.0
+MMCV: 1.6.0
+MMCV Compiler: GCC 9.3
+MMCV CUDA Compiler: 11.3
+MMSegmentation: 0.24.1+
+------------------------------------------------------------
+
+2026-02-04 23:18:34,938 - mmseg - INFO - Distributed training: False
+2026-02-04 23:18:35,002 - mmseg - INFO - Config:
+norm_cfg = dict(type='SyncBN', requires_grad=True)
+ham_norm_cfg = dict(type='GN', num_groups=32, requires_grad=True)
+model = dict(
+    type='EncoderDecoder',
+    pretrained=None,
+    backbone=dict(
+        type='MSCAN',
+        embed_dims=[32, 64, 160, 256],
+        mlp_ratios=[8, 8, 4, 4],
+        drop_rate=0.0,
+        drop_path_rate=0.1,
+        depths=[3, 3, 5, 2],
+        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        init_cfg=dict(
+            type='Pretrained',
+            checkpoint='pretrained/segnext_tiny_512x512_ade_160k.pth')),
+    decode_head=dict(
+        type='LightHamHead',
+        in_channels=[64, 160, 256],
+        in_index=[1, 2, 3],
+        channels=256,
+        ham_channels=256,
+        dropout_ratio=0.1,
+        num_classes=2,
+        norm_cfg=dict(type='GN', num_groups=32, requires_grad=True),
+        align_corners=False,
+        loss_decode=[
+            dict(
+                type='CrossEntropyLoss',
+                use_sigmoid=False,
+                loss_weight=3.0,
+                class_weight=[0.7, 0.3],
+                avg_non_ignore=True),
+            dict(
+                type='FocalLoss',
+                loss_name='loss_focal',
+                class_weight=[3, 7],
+                loss_weight=1.0)
+        ],
+        ham_kwargs=dict(MD_R=16)),
+    train_cfg=dict(),
+    test_cfg=dict(mode='whole'))
+dataset_type = 'CustomDataset'
+data_root = './datasets/crackset'
+img_norm_cfg = dict(mean=[0, 0, 0], std=[255.0, 255.0, 255.0], to_rgb=True)
+crop_size = (512, 512)
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+    dict(
+        type='CUSTAM_AUG',
+        crack_dir='./datasets/crackset',
+        max_crack_num=5,
+        paste_crack=True,
+        image_shape=(512, 512),
+        prob=0.5),
+    dict(type='RandomFlip', prob=0.5),
+    dict(type='AdjustGamma'),
+    dict(
+        type='Normalize',
+        mean=[0, 0, 0],
+        std=[255.0, 255.0, 255.0],
+        to_rgb=True),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img', 'gt_semantic_seg'])
+]
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(
+        type='MultiScaleFlipAug',
+        img_scale=(512, 512),
+        flip=False,
+        transforms=[
+            dict(type='Resize', keep_ratio=True),
+            dict(type='ResizeToMultiple', size_divisor=32),
+            dict(type='RandomFlip'),
+            dict(
+                type='Normalize',
+                mean=[0, 0, 0],
+                std=[255.0, 255.0, 255.0],
+                to_rgb=True),
+            dict(type='ImageToTensor', keys=['img']),
+            dict(type='Collect', keys=['img'])
+        ])
+]
+data = dict(
+    samples_per_gpu=24,
+    workers_per_gpu=4,
+    train=dict(
+        type='RepeatDataset',
+        times=50,
+        dataset=dict(
+            type='CustomDataset',
+            data_root='./datasets/crackset',
+            img_dir='images/train',
+            ann_dir='labels/train',
+            pipeline=[
+                dict(type='LoadImageFromFile'),
+                dict(type='LoadAnnotations'),
+                dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+                dict(
+                    type='CUSTAM_AUG',
+                    crack_dir='./datasets/crackset',
+                    max_crack_num=5,
+                    paste_crack=True,
+                    image_shape=(512, 512),
+                    prob=0.5),
+                dict(type='RandomFlip', prob=0.5),
+                dict(type='AdjustGamma'),
+                dict(
+                    type='Normalize',
+                    mean=[0, 0, 0],
+                    std=[255.0, 255.0, 255.0],
+                    to_rgb=True),
+                dict(type='DefaultFormatBundle'),
+                dict(type='Collect', keys=['img', 'gt_semantic_seg'])
+            ])),
+    val=dict(
+        type='CustomDataset',
+        data_root='./datasets/crackset',
+        img_dir='images/val',
+        ann_dir='labels/val',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(
+                type='MultiScaleFlipAug',
+                img_scale=(512, 512),
+                flip=False,
+                transforms=[
+                    dict(type='Resize', keep_ratio=True),
+                    dict(type='ResizeToMultiple', size_divisor=32),
+                    dict(type='RandomFlip'),
+                    dict(
+                        type='Normalize',
+                        mean=[0, 0, 0],
+                        std=[255.0, 255.0, 255.0],
+                        to_rgb=True),
+                    dict(type='ImageToTensor', keys=['img']),
+                    dict(type='Collect', keys=['img'])
+                ])
+        ]),
+    test=dict(
+        type='CustomDataset',
+        data_root='./datasets/crackset',
+        img_dir='images/val',
+        ann_dir='labels/val',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(
+                type='MultiScaleFlipAug',
+                img_scale=(512, 512),
+                flip=False,
+                transforms=[
+                    dict(type='Resize', keep_ratio=True),
+                    dict(type='ResizeToMultiple', size_divisor=32),
+                    dict(type='RandomFlip'),
+                    dict(
+                        type='Normalize',
+                        mean=[0, 0, 0],
+                        std=[255.0, 255.0, 255.0],
+                        to_rgb=True),
+                    dict(type='ImageToTensor', keys=['img']),
+                    dict(type='Collect', keys=['img'])
+                ])
+        ]))
+log_config = dict(
+    interval=1000, hooks=[dict(type='TextLoggerHook', by_epoch=False)])
+dist_params = dict(backend='nccl')
+log_level = 'INFO'
+load_from = None
+resume_from = ''
+workflow = [('train', 1)]
+cudnn_benchmark = True
+optimizer = dict(
+    type='AdamW',
+    lr=6e-05,
+    betas=(0.9, 0.999),
+    weight_decay=0.0001,
+    paramwise_cfg=dict(
+        custom_keys=dict(
+            pos_block=dict(decay_mult=0.0),
+            norm=dict(decay_mult=0.0),
+            head=dict(lr_mult=10.0))))
+optimizer_config = dict()
+lr_config = dict(
+    policy='poly',
+    warmup='linear',
+    warmup_iters=3000,
+    warmup_ratio=1e-06,
+    power=1.0,
+    min_lr=0.0001,
+    by_epoch=False)
+runner = dict(type='IterBasedRunner', max_iters=322000)
+checkpoint_config = dict(by_epoch=False, interval=500)
+evaluation = dict(interval=1000000, metric='mIoU')
+find_unused_parameters = True
+work_dir = './work_dirs/sanyi_mianzhen_gauss_sobelconv_512_20260203_finetune'
+gpu_ids = [0]
+auto_resume = False
+
+2026-02-04 23:18:35,002 - mmseg - INFO - Set random seed to 8915247, deterministic: False
+2026-02-04 23:18:37,246 - mmseg - INFO - initialize MSCAN with init_cfg {'type': 'Pretrained', 'checkpoint': 'pretrained/segnext_tiny_512x512_ade_160k.pth'}
+2026-02-04 23:18:37,349 - mmseg - INFO - initialize LightHamHead with init_cfg {'type': 'Normal', 'std': 0.01, 'override': {'name': 'conv_seg'}}
+Name of parameter - Initialization information
+
+backbone.patch_embed1.proj.0.weight - torch.Size([16, 16, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.proj.0.bias - torch.Size([16]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.proj.1.weight - torch.Size([16]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.proj.1.bias - torch.Size([16]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.proj.3.weight - torch.Size([32, 16, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.proj.3.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.proj.4.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.proj.4.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.depthwise.weight - torch.Size([3, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.depthwise.bias - torch.Size([3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.pointwise.weight - torch.Size([64, 3, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.pointwise.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.bn.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.bn.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.depthwise1.weight - torch.Size([64, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.depthwise1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.pointwise1.weight - torch.Size([32, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.pointwise1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.bn1.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed1.pixel_att.bn1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.layer_scale_1 - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.layer_scale_2 - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.norm1.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.norm1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.proj_1.weight - torch.Size([32, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.proj_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv0.weight - torch.Size([32, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv0.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv0_1.weight - torch.Size([32, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv0_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv0_2.weight - torch.Size([32, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv0_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv1_1.weight - torch.Size([32, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv1_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv1_2.weight - torch.Size([32, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv1_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv2_1.weight - torch.Size([32, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv2_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv2_2.weight - torch.Size([32, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv2_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv3.weight - torch.Size([32, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.spatial_gating_unit.conv3.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.proj_2.weight - torch.Size([32, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.attn.proj_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.norm2.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.norm2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.mlp.fc1.weight - torch.Size([256, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.mlp.fc1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.mlp.dwconv.dwconv.weight - torch.Size([256, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.mlp.dwconv.dwconv.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.mlp.fc2.weight - torch.Size([32, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.0.mlp.fc2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.layer_scale_1 - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.layer_scale_2 - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.norm1.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.norm1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.proj_1.weight - torch.Size([32, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.proj_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv0.weight - torch.Size([32, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv0.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv0_1.weight - torch.Size([32, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv0_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv0_2.weight - torch.Size([32, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv0_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv1_1.weight - torch.Size([32, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv1_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv1_2.weight - torch.Size([32, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv1_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv2_1.weight - torch.Size([32, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv2_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv2_2.weight - torch.Size([32, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv2_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv3.weight - torch.Size([32, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.spatial_gating_unit.conv3.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.proj_2.weight - torch.Size([32, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.attn.proj_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.norm2.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.norm2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.mlp.fc1.weight - torch.Size([256, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.mlp.fc1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.mlp.dwconv.dwconv.weight - torch.Size([256, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.mlp.dwconv.dwconv.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.mlp.fc2.weight - torch.Size([32, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.1.mlp.fc2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.layer_scale_1 - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.layer_scale_2 - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.norm1.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.norm1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.proj_1.weight - torch.Size([32, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.proj_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv0.weight - torch.Size([32, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv0.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv0_1.weight - torch.Size([32, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv0_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv0_2.weight - torch.Size([32, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv0_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv1_1.weight - torch.Size([32, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv1_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv1_2.weight - torch.Size([32, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv1_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv2_1.weight - torch.Size([32, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv2_1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv2_2.weight - torch.Size([32, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv2_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv3.weight - torch.Size([32, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.spatial_gating_unit.conv3.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.proj_2.weight - torch.Size([32, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.attn.proj_2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.norm2.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.norm2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.mlp.fc1.weight - torch.Size([256, 32, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.mlp.fc1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.mlp.dwconv.dwconv.weight - torch.Size([256, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.mlp.dwconv.dwconv.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.mlp.fc2.weight - torch.Size([32, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block1.2.mlp.fc2.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.norm1.weight - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.norm1.bias - torch.Size([32]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed2.proj.weight - torch.Size([64, 32, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed2.proj.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed2.norm.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed2.norm.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.layer_scale_1 - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.layer_scale_2 - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.norm1.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.norm1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.proj_1.weight - torch.Size([64, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.proj_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv0.weight - torch.Size([64, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv0.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv0_1.weight - torch.Size([64, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv0_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv0_2.weight - torch.Size([64, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv0_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv1_1.weight - torch.Size([64, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv1_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv1_2.weight - torch.Size([64, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv1_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv2_1.weight - torch.Size([64, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv2_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv2_2.weight - torch.Size([64, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv2_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv3.weight - torch.Size([64, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.spatial_gating_unit.conv3.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.proj_2.weight - torch.Size([64, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.attn.proj_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.norm2.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.norm2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.mlp.fc1.weight - torch.Size([512, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.mlp.fc1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.mlp.dwconv.dwconv.weight - torch.Size([512, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.mlp.dwconv.dwconv.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.mlp.fc2.weight - torch.Size([64, 512, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.0.mlp.fc2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.layer_scale_1 - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.layer_scale_2 - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.norm1.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.norm1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.proj_1.weight - torch.Size([64, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.proj_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv0.weight - torch.Size([64, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv0.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv0_1.weight - torch.Size([64, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv0_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv0_2.weight - torch.Size([64, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv0_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv1_1.weight - torch.Size([64, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv1_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv1_2.weight - torch.Size([64, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv1_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv2_1.weight - torch.Size([64, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv2_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv2_2.weight - torch.Size([64, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv2_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv3.weight - torch.Size([64, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.spatial_gating_unit.conv3.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.proj_2.weight - torch.Size([64, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.attn.proj_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.norm2.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.norm2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.mlp.fc1.weight - torch.Size([512, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.mlp.fc1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.mlp.dwconv.dwconv.weight - torch.Size([512, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.mlp.dwconv.dwconv.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.mlp.fc2.weight - torch.Size([64, 512, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.1.mlp.fc2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.layer_scale_1 - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.layer_scale_2 - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.norm1.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.norm1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.proj_1.weight - torch.Size([64, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.proj_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv0.weight - torch.Size([64, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv0.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv0_1.weight - torch.Size([64, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv0_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv0_2.weight - torch.Size([64, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv0_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv1_1.weight - torch.Size([64, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv1_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv1_2.weight - torch.Size([64, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv1_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv2_1.weight - torch.Size([64, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv2_1.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv2_2.weight - torch.Size([64, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv2_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv3.weight - torch.Size([64, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.spatial_gating_unit.conv3.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.proj_2.weight - torch.Size([64, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.attn.proj_2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.norm2.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.norm2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.mlp.fc1.weight - torch.Size([512, 64, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.mlp.fc1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.mlp.dwconv.dwconv.weight - torch.Size([512, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.mlp.dwconv.dwconv.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.mlp.fc2.weight - torch.Size([64, 512, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block2.2.mlp.fc2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.norm2.weight - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.norm2.bias - torch.Size([64]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed3.proj.weight - torch.Size([160, 64, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed3.proj.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed3.norm.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed3.norm.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.layer_scale_1 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.layer_scale_2 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.norm1.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.norm1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.proj_1.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.proj_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv0.weight - torch.Size([160, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv0.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv0_1.weight - torch.Size([160, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv0_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv0_2.weight - torch.Size([160, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv0_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv1_1.weight - torch.Size([160, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv1_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv1_2.weight - torch.Size([160, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv1_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv2_1.weight - torch.Size([160, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv2_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv2_2.weight - torch.Size([160, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv2_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv3.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.spatial_gating_unit.conv3.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.proj_2.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.attn.proj_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.norm2.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.norm2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.mlp.fc1.weight - torch.Size([640, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.mlp.fc1.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.mlp.dwconv.dwconv.weight - torch.Size([640, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.mlp.dwconv.dwconv.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.mlp.fc2.weight - torch.Size([160, 640, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.0.mlp.fc2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.layer_scale_1 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.layer_scale_2 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.norm1.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.norm1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.proj_1.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.proj_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv0.weight - torch.Size([160, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv0.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv0_1.weight - torch.Size([160, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv0_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv0_2.weight - torch.Size([160, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv0_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv1_1.weight - torch.Size([160, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv1_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv1_2.weight - torch.Size([160, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv1_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv2_1.weight - torch.Size([160, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv2_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv2_2.weight - torch.Size([160, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv2_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv3.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.spatial_gating_unit.conv3.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.proj_2.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.attn.proj_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.norm2.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.norm2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.mlp.fc1.weight - torch.Size([640, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.mlp.fc1.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.mlp.dwconv.dwconv.weight - torch.Size([640, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.mlp.dwconv.dwconv.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.mlp.fc2.weight - torch.Size([160, 640, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.1.mlp.fc2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.layer_scale_1 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.layer_scale_2 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.norm1.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.norm1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.proj_1.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.proj_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv0.weight - torch.Size([160, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv0.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv0_1.weight - torch.Size([160, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv0_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv0_2.weight - torch.Size([160, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv0_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv1_1.weight - torch.Size([160, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv1_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv1_2.weight - torch.Size([160, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv1_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv2_1.weight - torch.Size([160, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv2_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv2_2.weight - torch.Size([160, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv2_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv3.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.spatial_gating_unit.conv3.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.proj_2.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.attn.proj_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.norm2.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.norm2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.mlp.fc1.weight - torch.Size([640, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.mlp.fc1.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.mlp.dwconv.dwconv.weight - torch.Size([640, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.mlp.dwconv.dwconv.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.mlp.fc2.weight - torch.Size([160, 640, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.2.mlp.fc2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.layer_scale_1 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.layer_scale_2 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.norm1.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.norm1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.proj_1.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.proj_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv0.weight - torch.Size([160, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv0.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv0_1.weight - torch.Size([160, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv0_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv0_2.weight - torch.Size([160, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv0_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv1_1.weight - torch.Size([160, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv1_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv1_2.weight - torch.Size([160, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv1_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv2_1.weight - torch.Size([160, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv2_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv2_2.weight - torch.Size([160, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv2_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv3.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.spatial_gating_unit.conv3.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.proj_2.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.attn.proj_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.norm2.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.norm2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.mlp.fc1.weight - torch.Size([640, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.mlp.fc1.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.mlp.dwconv.dwconv.weight - torch.Size([640, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.mlp.dwconv.dwconv.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.mlp.fc2.weight - torch.Size([160, 640, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.3.mlp.fc2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.layer_scale_1 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.layer_scale_2 - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.norm1.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.norm1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.proj_1.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.proj_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv0.weight - torch.Size([160, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv0.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv0_1.weight - torch.Size([160, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv0_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv0_2.weight - torch.Size([160, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv0_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv1_1.weight - torch.Size([160, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv1_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv1_2.weight - torch.Size([160, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv1_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv2_1.weight - torch.Size([160, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv2_1.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv2_2.weight - torch.Size([160, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv2_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv3.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.spatial_gating_unit.conv3.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.proj_2.weight - torch.Size([160, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.attn.proj_2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.norm2.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.norm2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.mlp.fc1.weight - torch.Size([640, 160, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.mlp.fc1.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.mlp.dwconv.dwconv.weight - torch.Size([640, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.mlp.dwconv.dwconv.bias - torch.Size([640]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.mlp.fc2.weight - torch.Size([160, 640, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block3.4.mlp.fc2.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.norm3.weight - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.norm3.bias - torch.Size([160]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed4.proj.weight - torch.Size([256, 160, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed4.proj.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed4.norm.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.patch_embed4.norm.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.layer_scale_1 - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.layer_scale_2 - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.norm1.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.norm1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.proj_1.weight - torch.Size([256, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.proj_1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv0.weight - torch.Size([256, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv0.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv0_1.weight - torch.Size([256, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv0_1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv0_2.weight - torch.Size([256, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv0_2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv1_1.weight - torch.Size([256, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv1_1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv1_2.weight - torch.Size([256, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv1_2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv2_1.weight - torch.Size([256, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv2_1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv2_2.weight - torch.Size([256, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv2_2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv3.weight - torch.Size([256, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.spatial_gating_unit.conv3.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.proj_2.weight - torch.Size([256, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.attn.proj_2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.norm2.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.norm2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.mlp.fc1.weight - torch.Size([1024, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.mlp.fc1.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.mlp.dwconv.dwconv.weight - torch.Size([1024, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.mlp.dwconv.dwconv.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.mlp.fc2.weight - torch.Size([256, 1024, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.0.mlp.fc2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.layer_scale_1 - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.layer_scale_2 - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.norm1.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.norm1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.proj_1.weight - torch.Size([256, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.proj_1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv0.weight - torch.Size([256, 1, 5, 5]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv0.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv0_1.weight - torch.Size([256, 1, 1, 7]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv0_1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv0_2.weight - torch.Size([256, 1, 7, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv0_2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv1_1.weight - torch.Size([256, 1, 1, 11]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv1_1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv1_2.weight - torch.Size([256, 1, 11, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv1_2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv2_1.weight - torch.Size([256, 1, 1, 21]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv2_1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv2_2.weight - torch.Size([256, 1, 21, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv2_2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv3.weight - torch.Size([256, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.spatial_gating_unit.conv3.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.proj_2.weight - torch.Size([256, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.attn.proj_2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.norm2.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.norm2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.mlp.fc1.weight - torch.Size([1024, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.mlp.fc1.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.mlp.dwconv.dwconv.weight - torch.Size([1024, 1, 3, 3]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.mlp.dwconv.dwconv.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.mlp.fc2.weight - torch.Size([256, 1024, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.block4.1.mlp.fc2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.norm4.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+backbone.norm4.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+decode_head.conv_seg.weight - torch.Size([2, 256, 1, 1]): 
+NormalInit: mean=0, std=0.01, bias=0 
+
+decode_head.conv_seg.bias - torch.Size([2]): 
+NormalInit: mean=0, std=0.01, bias=0 
+
+decode_head.squeeze.conv.weight - torch.Size([256, 480, 1, 1]): 
+Initialized by user-defined `init_weights` in ConvModule  
+
+decode_head.squeeze.gn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+decode_head.squeeze.gn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+decode_head.hamburger.ham_in.conv.weight - torch.Size([256, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+decode_head.hamburger.ham_in.conv.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+decode_head.hamburger.ham_out.conv.weight - torch.Size([256, 256, 1, 1]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+decode_head.hamburger.ham_out.gn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+decode_head.hamburger.ham_out.gn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+decode_head.align.conv.weight - torch.Size([256, 256, 1, 1]): 
+Initialized by user-defined `init_weights` in ConvModule  
+
+decode_head.align.gn.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+
+decode_head.align.gn.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of EncoderDecoder  
+2026-02-04 23:18:37,353 - mmseg - INFO - EncoderDecoder(
+  (backbone): MSCAN(
+    (patch_embed1): StemConv(
+      (gauss_conv): GaussianBlur2D()
+      (sobel_conv): SobelConv2D()
+      (multi_dog): MultiScaleDoGEnhance(
+        (dog_layers): ModuleList(
+          (0): DoGEnhance()
+          (1): DoGEnhance()
+          (2): DoGEnhance()
+        )
+      )
+      (proj): Sequential(
+        (0): Conv2d(16, 16, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (1): _BatchNormXd(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (2): GELU()
+        (3): Conv2d(16, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+        (4): _BatchNormXd(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      )
+      (pixel_att): DepthwiseSeparableConv(
+        (depthwise): Conv2d(3, 3, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=3)
+        (pooling): MaxPool2d(kernel_size=4, stride=4, padding=0, dilation=1, ceil_mode=False)
+        (pointwise): Conv2d(3, 64, kernel_size=(1, 1), stride=(1, 1))
+        (bn): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu): ReLU(inplace=True)
+        (depthwise1): Conv2d(64, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), groups=64)
+        (pooling1): MaxPool2d(kernel_size=4, stride=4, padding=0, dilation=1, ceil_mode=False)
+        (pointwise1): Conv2d(64, 32, kernel_size=(1, 1), stride=(1, 1))
+        (bn1): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (relu1): ReLU(inplace=True)
+      )
+    )
+    (block1): ModuleList(
+      (0): Block(
+        (norm1): _BatchNormXd(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(32, 32, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(32, 32, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=32)
+            (conv0_1): Conv2d(32, 32, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=32)
+            (conv0_2): Conv2d(32, 32, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=32)
+            (conv1_1): Conv2d(32, 32, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=32)
+            (conv1_2): Conv2d(32, 32, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=32)
+            (conv2_1): Conv2d(32, 32, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=32)
+            (conv2_2): Conv2d(32, 32, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=32)
+            (conv3): Conv2d(32, 32, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(32, 32, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): Identity()
+        (norm2): _BatchNormXd(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(32, 256, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=256)
+          )
+          (act): GELU()
+          (fc2): Conv2d(256, 32, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (1): Block(
+        (norm1): _BatchNormXd(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(32, 32, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(32, 32, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=32)
+            (conv0_1): Conv2d(32, 32, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=32)
+            (conv0_2): Conv2d(32, 32, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=32)
+            (conv1_1): Conv2d(32, 32, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=32)
+            (conv1_2): Conv2d(32, 32, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=32)
+            (conv2_1): Conv2d(32, 32, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=32)
+            (conv2_2): Conv2d(32, 32, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=32)
+            (conv3): Conv2d(32, 32, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(32, 32, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(32, 256, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=256)
+          )
+          (act): GELU()
+          (fc2): Conv2d(256, 32, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (2): Block(
+        (norm1): _BatchNormXd(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(32, 32, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(32, 32, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=32)
+            (conv0_1): Conv2d(32, 32, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=32)
+            (conv0_2): Conv2d(32, 32, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=32)
+            (conv1_1): Conv2d(32, 32, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=32)
+            (conv1_2): Conv2d(32, 32, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=32)
+            (conv2_1): Conv2d(32, 32, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=32)
+            (conv2_2): Conv2d(32, 32, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=32)
+            (conv3): Conv2d(32, 32, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(32, 32, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(32, 256, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=256)
+          )
+          (act): GELU()
+          (fc2): Conv2d(256, 32, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+    )
+    (norm1): LayerNorm((32,), eps=1e-05, elementwise_affine=True)
+    (patch_embed2): OverlapPatchEmbed(
+      (proj): Conv2d(32, 64, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (norm): _BatchNormXd(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    )
+    (block2): ModuleList(
+      (0): Block(
+        (norm1): _BatchNormXd(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(64, 64, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=64)
+            (conv0_1): Conv2d(64, 64, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=64)
+            (conv0_2): Conv2d(64, 64, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=64)
+            (conv1_1): Conv2d(64, 64, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=64)
+            (conv1_2): Conv2d(64, 64, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=64)
+            (conv2_1): Conv2d(64, 64, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=64)
+            (conv2_2): Conv2d(64, 64, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=64)
+            (conv3): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(64, 512, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=512)
+          )
+          (act): GELU()
+          (fc2): Conv2d(512, 64, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (1): Block(
+        (norm1): _BatchNormXd(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(64, 64, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=64)
+            (conv0_1): Conv2d(64, 64, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=64)
+            (conv0_2): Conv2d(64, 64, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=64)
+            (conv1_1): Conv2d(64, 64, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=64)
+            (conv1_2): Conv2d(64, 64, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=64)
+            (conv2_1): Conv2d(64, 64, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=64)
+            (conv2_2): Conv2d(64, 64, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=64)
+            (conv3): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(64, 512, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=512)
+          )
+          (act): GELU()
+          (fc2): Conv2d(512, 64, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (2): Block(
+        (norm1): _BatchNormXd(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(64, 64, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=64)
+            (conv0_1): Conv2d(64, 64, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=64)
+            (conv0_2): Conv2d(64, 64, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=64)
+            (conv1_1): Conv2d(64, 64, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=64)
+            (conv1_2): Conv2d(64, 64, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=64)
+            (conv2_1): Conv2d(64, 64, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=64)
+            (conv2_2): Conv2d(64, 64, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=64)
+            (conv3): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(64, 512, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=512)
+          )
+          (act): GELU()
+          (fc2): Conv2d(512, 64, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+    )
+    (norm2): LayerNorm((64,), eps=1e-05, elementwise_affine=True)
+    (patch_embed3): OverlapPatchEmbed(
+      (proj): Conv2d(64, 160, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (norm): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    )
+    (block3): ModuleList(
+      (0): Block(
+        (norm1): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(160, 160, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=160)
+            (conv0_1): Conv2d(160, 160, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=160)
+            (conv0_2): Conv2d(160, 160, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=160)
+            (conv1_1): Conv2d(160, 160, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=160)
+            (conv1_2): Conv2d(160, 160, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=160)
+            (conv2_1): Conv2d(160, 160, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=160)
+            (conv2_2): Conv2d(160, 160, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=160)
+            (conv3): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(160, 640, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(640, 640, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=640)
+          )
+          (act): GELU()
+          (fc2): Conv2d(640, 160, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (1): Block(
+        (norm1): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(160, 160, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=160)
+            (conv0_1): Conv2d(160, 160, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=160)
+            (conv0_2): Conv2d(160, 160, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=160)
+            (conv1_1): Conv2d(160, 160, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=160)
+            (conv1_2): Conv2d(160, 160, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=160)
+            (conv2_1): Conv2d(160, 160, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=160)
+            (conv2_2): Conv2d(160, 160, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=160)
+            (conv3): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(160, 640, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(640, 640, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=640)
+          )
+          (act): GELU()
+          (fc2): Conv2d(640, 160, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (2): Block(
+        (norm1): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(160, 160, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=160)
+            (conv0_1): Conv2d(160, 160, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=160)
+            (conv0_2): Conv2d(160, 160, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=160)
+            (conv1_1): Conv2d(160, 160, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=160)
+            (conv1_2): Conv2d(160, 160, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=160)
+            (conv2_1): Conv2d(160, 160, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=160)
+            (conv2_2): Conv2d(160, 160, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=160)
+            (conv3): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(160, 640, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(640, 640, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=640)
+          )
+          (act): GELU()
+          (fc2): Conv2d(640, 160, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (3): Block(
+        (norm1): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(160, 160, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=160)
+            (conv0_1): Conv2d(160, 160, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=160)
+            (conv0_2): Conv2d(160, 160, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=160)
+            (conv1_1): Conv2d(160, 160, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=160)
+            (conv1_2): Conv2d(160, 160, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=160)
+            (conv2_1): Conv2d(160, 160, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=160)
+            (conv2_2): Conv2d(160, 160, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=160)
+            (conv3): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(160, 640, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(640, 640, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=640)
+          )
+          (act): GELU()
+          (fc2): Conv2d(640, 160, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (4): Block(
+        (norm1): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(160, 160, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=160)
+            (conv0_1): Conv2d(160, 160, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=160)
+            (conv0_2): Conv2d(160, 160, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=160)
+            (conv1_1): Conv2d(160, 160, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=160)
+            (conv1_2): Conv2d(160, 160, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=160)
+            (conv2_1): Conv2d(160, 160, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=160)
+            (conv2_2): Conv2d(160, 160, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=160)
+            (conv3): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(160, 160, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(160, 640, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(640, 640, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=640)
+          )
+          (act): GELU()
+          (fc2): Conv2d(640, 160, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+    )
+    (norm3): LayerNorm((160,), eps=1e-05, elementwise_affine=True)
+    (patch_embed4): OverlapPatchEmbed(
+      (proj): Conv2d(160, 256, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))
+      (norm): _BatchNormXd(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    )
+    (block4): ModuleList(
+      (0): Block(
+        (norm1): _BatchNormXd(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(256, 256, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=256)
+            (conv0_1): Conv2d(256, 256, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=256)
+            (conv0_2): Conv2d(256, 256, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=256)
+            (conv1_1): Conv2d(256, 256, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=256)
+            (conv1_2): Conv2d(256, 256, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=256)
+            (conv2_1): Conv2d(256, 256, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=256)
+            (conv2_2): Conv2d(256, 256, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=256)
+            (conv3): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024)
+          )
+          (act): GELU()
+          (fc2): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+      (1): Block(
+        (norm1): _BatchNormXd(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (attn): SpatialAttention(
+          (proj_1): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+          (activation): GELU()
+          (spatial_gating_unit): AttentionModule(
+            (conv0): Conv2d(256, 256, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2), groups=256)
+            (conv0_1): Conv2d(256, 256, kernel_size=(1, 7), stride=(1, 1), padding=(0, 3), groups=256)
+            (conv0_2): Conv2d(256, 256, kernel_size=(7, 1), stride=(1, 1), padding=(3, 0), groups=256)
+            (conv1_1): Conv2d(256, 256, kernel_size=(1, 11), stride=(1, 1), padding=(0, 5), groups=256)
+            (conv1_2): Conv2d(256, 256, kernel_size=(11, 1), stride=(1, 1), padding=(5, 0), groups=256)
+            (conv2_1): Conv2d(256, 256, kernel_size=(1, 21), stride=(1, 1), padding=(0, 10), groups=256)
+            (conv2_2): Conv2d(256, 256, kernel_size=(21, 1), stride=(1, 1), padding=(10, 0), groups=256)
+            (conv3): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+          )
+          (proj_2): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+        )
+        (drop_path): DropPath()
+        (norm2): _BatchNormXd(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        (mlp): Mlp(
+          (fc1): Conv2d(256, 1024, kernel_size=(1, 1), stride=(1, 1))
+          (dwconv): DWConv(
+            (dwconv): Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1024)
+          )
+          (act): GELU()
+          (fc2): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1))
+          (drop): Dropout(p=0.0, inplace=False)
+        )
+      )
+    )
+    (norm4): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+  )
+  init_cfg={'type': 'Pretrained', 'checkpoint': 'pretrained/segnext_tiny_512x512_ade_160k.pth'}
+  (decode_head): LightHamHead(
+    input_transform=multiple_select, ignore_index=255, align_corners=False
+    (loss_decode): ModuleList(
+      (0): CrossEntropyLoss(avg_non_ignore=True)
+      (1): FocalLoss()
+    )
+    (conv_seg): Conv2d(256, 2, kernel_size=(1, 1), stride=(1, 1))
+    (dropout): Dropout2d(p=0.1, inplace=False)
+    (squeeze): ConvModule(
+      (conv): Conv2d(480, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (gn): GroupNorm(32, 256, eps=1e-05, affine=True)
+      (activate): ReLU(inplace=True)
+    )
+    (hamburger): Hamburger(
+      (ham_in): ConvModule(
+        (conv): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+      )
+      (ham): NMF2D()
+      (ham_out): ConvModule(
+        (conv): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        (gn): GroupNorm(32, 256, eps=1e-05, affine=True)
+      )
+    )
+    (align): ConvModule(
+      (conv): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+      (gn): GroupNorm(32, 256, eps=1e-05, affine=True)
+      (activate): ReLU(inplace=True)
+    )
+  )
+  init_cfg={'type': 'Normal', 'std': 0.01, 'override': {'name': 'conv_seg'}}
+)
+2026-02-04 23:18:37,375 - mmseg - INFO - Loaded 2690 images
+2026-02-04 23:18:37,468 - mmseg - INFO - Loaded 348 images
+2026-02-04 23:18:37,469 - mmseg - INFO - Start running, host: yaogan103@Rom103, work_dir: /media/yaogan103/5C6410CF6410AE30/SegNext_0204/work_dirs/sanyi_mianzhen_gauss_sobelconv_512_20260203_finetune
+2026-02-04 23:18:37,469 - mmseg - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) PolyLrUpdaterHook                  
+(NORMAL      ) CheckpointHook                     
+(LOW         ) EvalHook                           
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) PolyLrUpdaterHook                  
+(LOW         ) IterTimerHook                      
+(LOW         ) EvalHook                           
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) PolyLrUpdaterHook                  
+(LOW         ) IterTimerHook                      
+(LOW         ) EvalHook                           
+ -------------------- 
+after_train_iter:
+(ABOVE_NORMAL) OptimizerHook                      
+(NORMAL      ) CheckpointHook                     
+(LOW         ) IterTimerHook                      
+(LOW         ) EvalHook                           
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) CheckpointHook                     
+(LOW         ) EvalHook                           
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_epoch:
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_epoch:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_run:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+2026-02-04 23:18:37,469 - mmseg - INFO - workflow: [('train', 1)], max: 322000 iters
+2026-02-04 23:18:37,469 - mmseg - INFO - Checkpoints will be saved to /media/yaogan103/5C6410CF6410AE30/SegNext_0204/work_dirs/sanyi_mianzhen_gauss_sobelconv_512_20260203_finetune by HardDiskBackend.

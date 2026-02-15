@@ -1,0 +1,238 @@
+2026-02-05 20:38:01,737 - mmseg - INFO - Multi-processing start method is `None`
+2026-02-05 20:38:01,737 - mmseg - INFO - OpenCV num_threads is `<built-in function getNumThreads>
+2026-02-05 20:38:01,740 - mmseg - INFO - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.10.19 (main, Oct 21 2025, 16:43:05) [GCC 11.2.0]
+CUDA available: False
+GCC: gcc (Ubuntu 13.3.0-6ubuntu2~24.04) 13.3.0
+PyTorch: 1.11.0+cu113
+PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) Math Kernel Library Version 2020.0.0 Product Build 20191122 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v2.5.2 (Git Hash a9302535553c73243c632ad3c4c80beec3d19a1e)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - LAPACK is enabled (usually provided by MKL)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.3, CUDNN_VERSION=8.2.0, CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/c++, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DSYMBOLICATE_MOBILE_DEBUG_HANDLE -DEDGE_PROFILER_USE_KINETO -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.11.0, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=OFF, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_ROCM=OFF, 
+
+TorchVision: 0.12.0+cu113
+OpenCV: 4.13.0
+MMCV: 1.6.0
+MMCV Compiler: GCC 9.3
+MMCV CUDA Compiler: 11.3
+MMSegmentation: 0.24.1+
+------------------------------------------------------------
+
+2026-02-05 20:38:01,740 - mmseg - INFO - Distributed training: False
+2026-02-05 20:38:02,070 - mmseg - INFO - Config:
+norm_cfg = dict(type='SyncBN', requires_grad=True)
+ham_norm_cfg = dict(type='GN', num_groups=32, requires_grad=True)
+model = dict(
+    type='EncoderDecoder',
+    pretrained=None,
+    backbone=dict(
+        type='MSCAN',
+        embed_dims=[32, 64, 160, 256],
+        mlp_ratios=[8, 8, 4, 4],
+        drop_rate=0.0,
+        drop_path_rate=0.1,
+        depths=[3, 3, 5, 2],
+        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        init_cfg=dict(
+            type='Pretrained',
+            checkpoint='pretrained/segnext_tiny_512x512_ade_160k.pth')),
+    decode_head=dict(
+        type='LightHamHead',
+        in_channels=[64, 160, 256],
+        in_index=[1, 2, 3],
+        channels=256,
+        ham_channels=256,
+        dropout_ratio=0.1,
+        num_classes=2,
+        norm_cfg=dict(type='GN', num_groups=32, requires_grad=True),
+        align_corners=False,
+        loss_decode=[
+            dict(
+                type='CrossEntropyLoss',
+                use_sigmoid=False,
+                loss_weight=3.0,
+                class_weight=[0.7, 0.3],
+                avg_non_ignore=True),
+            dict(
+                type='FocalLoss',
+                loss_name='loss_focal',
+                class_weight=[3, 7],
+                loss_weight=1.0)
+        ],
+        ham_kwargs=dict(MD_R=16)),
+    train_cfg=dict(),
+    test_cfg=dict(mode='whole'))
+dataset_type = 'CustomDataset'
+data_root = '/media/yaogan103/5C6410CF6410AE30/SegNext_0204/datasets/天润20260120标注'
+img_norm_cfg = dict(mean=[0, 0, 0], std=[255.0, 255.0, 255.0], to_rgb=True)
+crop_size = (512, 512)
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(type='LoadAnnotations'),
+    dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+    dict(
+        type='CUSTAM_AUG',
+        crack_dir=
+        '/media/yaogan103/5C6410CF6410AE30/SegNext_0204/datasets/天润20260120标注/images',
+        max_crack_num=5,
+        paste_crack=True,
+        image_shape=(512, 512),
+        prob=0.5),
+    dict(type='RandomFlip', prob=0.5),
+    dict(type='AdjustGamma'),
+    dict(
+        type='Normalize',
+        mean=[0, 0, 0],
+        std=[255.0, 255.0, 255.0],
+        to_rgb=True),
+    dict(type='DefaultFormatBundle'),
+    dict(type='Collect', keys=['img', 'gt_semantic_seg'])
+]
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(
+        type='MultiScaleFlipAug',
+        img_scale=(512, 512),
+        flip=False,
+        transforms=[
+            dict(type='Resize', keep_ratio=True),
+            dict(type='ResizeToMultiple', size_divisor=32),
+            dict(type='RandomFlip'),
+            dict(
+                type='Normalize',
+                mean=[0, 0, 0],
+                std=[255.0, 255.0, 255.0],
+                to_rgb=True),
+            dict(type='ImageToTensor', keys=['img']),
+            dict(type='Collect', keys=['img'])
+        ])
+]
+data = dict(
+    samples_per_gpu=24,
+    workers_per_gpu=4,
+    train=dict(
+        type='RepeatDataset',
+        times=50,
+        dataset=dict(
+            type='CustomDataset',
+            data_root=
+            '/media/yaogan103/5C6410CF6410AE30/SegNext_0204/datasets/天润20260120标注',
+            img_dir='images/train',
+            ann_dir='labels/train',
+            pipeline=[
+                dict(type='LoadImageFromFile'),
+                dict(type='LoadAnnotations'),
+                dict(type='Resize', img_scale=(512, 512), keep_ratio=True),
+                dict(
+                    type='CUSTAM_AUG',
+                    crack_dir=
+                    '/media/yaogan103/5C6410CF6410AE30/SegNext_0204/datasets/天润20260120标注/images',
+                    max_crack_num=5,
+                    paste_crack=True,
+                    image_shape=(512, 512),
+                    prob=0.5),
+                dict(type='RandomFlip', prob=0.5),
+                dict(type='AdjustGamma'),
+                dict(
+                    type='Normalize',
+                    mean=[0, 0, 0],
+                    std=[255.0, 255.0, 255.0],
+                    to_rgb=True),
+                dict(type='DefaultFormatBundle'),
+                dict(type='Collect', keys=['img', 'gt_semantic_seg'])
+            ])),
+    val=dict(
+        type='CustomDataset',
+        data_root=
+        '/media/yaogan103/5C6410CF6410AE30/SegNext_0204/datasets/天润20260120标注',
+        img_dir='images/val',
+        ann_dir='labels/val',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(
+                type='MultiScaleFlipAug',
+                img_scale=(512, 512),
+                flip=False,
+                transforms=[
+                    dict(type='Resize', keep_ratio=True),
+                    dict(type='ResizeToMultiple', size_divisor=32),
+                    dict(type='RandomFlip'),
+                    dict(
+                        type='Normalize',
+                        mean=[0, 0, 0],
+                        std=[255.0, 255.0, 255.0],
+                        to_rgb=True),
+                    dict(type='ImageToTensor', keys=['img']),
+                    dict(type='Collect', keys=['img'])
+                ])
+        ]),
+    test=dict(
+        type='CustomDataset',
+        data_root=
+        '/media/yaogan103/5C6410CF6410AE30/SegNext_0204/datasets/天润20260120标注',
+        img_dir='images/test',
+        ann_dir='labels/test',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(
+                type='MultiScaleFlipAug',
+                img_scale=(512, 512),
+                flip=False,
+                transforms=[
+                    dict(type='Resize', keep_ratio=True),
+                    dict(type='ResizeToMultiple', size_divisor=32),
+                    dict(type='RandomFlip'),
+                    dict(
+                        type='Normalize',
+                        mean=[0, 0, 0],
+                        std=[255.0, 255.0, 255.0],
+                        to_rgb=True),
+                    dict(type='ImageToTensor', keys=['img']),
+                    dict(type='Collect', keys=['img'])
+                ])
+        ]))
+log_config = dict(
+    interval=1000, hooks=[dict(type='TextLoggerHook', by_epoch=False)])
+dist_params = dict(backend='nccl')
+log_level = 'INFO'
+load_from = None
+resume_from = ''
+workflow = [('train', 1)]
+cudnn_benchmark = True
+optimizer = dict(
+    type='AdamW',
+    lr=6e-05,
+    betas=(0.9, 0.999),
+    weight_decay=0.0001,
+    paramwise_cfg=dict(
+        custom_keys=dict(
+            pos_block=dict(decay_mult=0.0),
+            norm=dict(decay_mult=0.0),
+            head=dict(lr_mult=10.0))))
+optimizer_config = dict()
+lr_config = dict(
+    policy='poly',
+    warmup='linear',
+    warmup_iters=3000,
+    warmup_ratio=1e-06,
+    power=1.0,
+    min_lr=0.0001,
+    by_epoch=False)
+runner = dict(type='IterBasedRunner', max_iters=322000)
+checkpoint_config = dict(by_epoch=False, interval=500)
+evaluation = dict(interval=1000000, metric='mIoU')
+find_unused_parameters = True
+work_dir = './work_dirs/sanyi_mianzhen_gauss_sobelconv_512_20260203_finetune'
+gpu_ids = [0]
+auto_resume = False
+
+2026-02-05 20:38:02,070 - mmseg - INFO - Set random seed to 577739736, deterministic: False
+2026-02-05 20:38:02,102 - mmseg - INFO - initialize MSCAN with init_cfg {'type': 'Pretrained', 'checkpoint': 'pretrained/segnext_tiny_512x512_ade_160k.pth'}
