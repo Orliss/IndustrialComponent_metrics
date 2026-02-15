@@ -8,7 +8,8 @@
 - 可生成纺锤型、蝌蚪型、波浪型树状裂纹,坑状裂纹初步完成--26.2.4
 - 使用mmgeneration生成模拟裂纹，效果如Crack_mmgenfake文件夹下所示
   - 配置文件为stylegan2_c2_ffhq_256_b4x8_800k_strawberry.py,评估Inception V3模型训练权重为crack.pkl
-
+  - 权重链接：https://pan.xunlei.com/s/VOlVEIP7mqDUNwzd6BEl4bdfA1?pwd=g98g#
+- ![模拟效果](Crack_mmgenfake/fake_image/1.jpg)
 
 # 文件结构--26.1.30
 0123_t0_result  # t0表示每处IOU阈值大于0即判定为预测正确
