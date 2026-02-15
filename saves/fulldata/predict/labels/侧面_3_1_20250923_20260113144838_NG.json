@@ -1,0 +1,61 @@
+{
+  "version": "2.3.6",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "crack",
+      "points": [
+        [
+          661,
+          1163
+        ],
+        [
+          660,
+          1164
+        ],
+        [
+          657,
+          1164
+        ],
+        [
+          662,
+          1164
+        ],
+        [
+          663,
+          1165
+        ],
+        [
+          675,
+          1165
+        ],
+        [
+          676,
+          1164
+        ],
+        [
+          684,
+          1164
+        ],
+        [
+          679,
+          1164
+        ],
+        [
+          678,
+          1163
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    }
+  ],
+  "imagePath": "侧面_3_1_20250923_20260113144838_NG.jpg",
+  "imageData": null,
+  "imageHeight": 2048,
+  "imageWidth": 2592
+}

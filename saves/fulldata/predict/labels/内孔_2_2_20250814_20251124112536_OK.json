@@ -1,0 +1,41 @@
+{
+  "version": "2.3.6",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "crack",
+      "points": [
+        [
+          548,
+          1474
+        ],
+        [
+          548,
+          1475
+        ],
+        [
+          549,
+          1476
+        ],
+        [
+          550,
+          1475
+        ],
+        [
+          550,
+          1474
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    }
+  ],
+  "imagePath": "内孔_2_2_20250814_20251124112536_OK.jpg",
+  "imageData": null,
+  "imageHeight": 2048,
+  "imageWidth": 2592
+}

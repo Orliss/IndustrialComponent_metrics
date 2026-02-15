@@ -1,0 +1,38 @@
+{
+  "version": "2.3.6",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "裂纹",
+      "points": [
+        [
+          1821.2880143112702,
+          802.1466905187835
+        ],
+        [
+          1823.2558139534883,
+          804.1144901610018
+        ],
+        [
+          1817.8890876565295,
+          821.4669051878354
+        ],
+        [
+          1815.742397137746,
+          822.1824686940967
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "difficult": false,
+      "shape_type": "polygon",
+      "flags": {},
+      "attributes": {}
+    }
+  ],
+  "imagePath": "侧面_2_1_20250923_20260112162832_NG.jpg",
+  "imageData": null,
+  "imageHeight": 2048,
+  "imageWidth": 2592,
+  "text": ""
+}
