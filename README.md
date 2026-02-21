@@ -1,3 +1,8 @@
+# 使用切分后小兔进行推理，再重新拼接效果
+- 结果上传至迅雷云盘，链接：https://pan.xunlei.com/s/VOlxuusFM1zFefwDsen0kNPHA1?pwd=48jh#
+- predict___json中为切分图片推理得到的标签，mosaic_images中为拼接后大图，mosaic_compare中为绿色推理结果与红色GT标签重叠比较
+- ![比较结果](after_stich.png)
+- ![比较结果](stich_sample/1.jpg) ![比较结果](stich_sample/2.jpg) ![比较结果](stich_sample/3.jpg)
 # 26.2.7模型训练结果
 - 训练结果保存在0204_train中
 - ![切分后随机选择的小图测试集上结果](260207.png)
